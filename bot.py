@@ -1409,7 +1409,8 @@ async def start(
 ⛔ Sizga ruxsat berilmagan
 
 Botdan foydalanish uchun:
-
+📩 Abdumomin ga murojaat qiling
+         yoki 
 📩 @dasturchi_0101 ga murojaat qiling
 
 Admin sizni qo‘shgandan keyin foydalanasiz.
