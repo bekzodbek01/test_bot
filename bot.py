@@ -7,6 +7,7 @@ from aiogram.types import (
     PollAnswer
 )
 from utils.database import *
+clear_fake_users()
 
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram.fsm.storage.memory import MemoryStorage

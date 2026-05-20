@@ -169,9 +169,8 @@ fullname
 
     conn.commit()
 
-def del_user_db(uid):
 
-    # USER
+def del_user_db(uid):
 
     cursor.execute(
 """
@@ -180,8 +179,6 @@ WHERE id=?
 """,
 (uid,)
 )
-
-    # REYTING
 
     cursor.execute(
 """
@@ -232,6 +229,15 @@ def save_result(
         correct,
         total
 ):
+
+    # FAKE USER BLOK
+
+    if (
+        not is_user(uid)
+        and not is_admin_db(uid)
+    ):
+
+        return
 
     cursor.execute(
 """
@@ -302,16 +308,45 @@ def get_leaderboard():
     cursor.execute(
 """
 SELECT
-fullname,
-correct,
-total
-FROM leaderboard
-ORDER BY correct DESC
+l.fullname,
+l.correct,
+l.total
+
+FROM leaderboard l
+
+INNER JOIN users u
+
+ON l.user_id = u.id
+
+ORDER BY l.correct DESC
 """
     )
 
     return cursor.fetchall()
 
+# =====================================
+# TOZALASH
+# =====================================
+
+def clear_fake_users():
+
+    cursor.execute(
+"""
+DELETE FROM leaderboard
+
+WHERE user_id NOT IN (
+
+SELECT id
+FROM users
+
+)
+"""
+    )
+
+    conn.commit()
+
+
+clear_fake_users()
 
 # =====================================
 # TEST
@@ -326,4 +361,8 @@ if __name__ == "__main__":
 
     print(
         get_users()
+    )
+
+    print(
+        get_leaderboard()
     )
