@@ -1,5 +1,11 @@
 import sqlite3
 import os
+SUPER_ADMIN = int(
+    os.getenv(
+        "SUPER_ADMIN",
+        "0"
+    )
+)
 
 # =====================================
 # DATABASE PATH
@@ -222,7 +228,6 @@ ORDER BY id DESC
 # =====================================
 # LEADERBOARD
 # =====================================
-
 def save_result(
         uid,
         fullname,
@@ -230,7 +235,7 @@ def save_result(
         total
 ):
 
-    # FAKE USER BLOK
+    # FAQAT USER VA ADMIN
 
     if (
         not is_user(uid)
@@ -301,7 +306,6 @@ total
 )
 
     conn.commit()
-
 def get_leaderboard():
 
     cursor.execute(
@@ -330,20 +334,17 @@ DELETE FROM leaderboard
 
 WHERE user_id NOT IN (
 
-SELECT id
-FROM users
+SELECT id FROM users
 
 UNION
 
-SELECT id
-FROM admins
+SELECT id FROM admins
 
 )
 """
     )
 
     conn.commit()
-
 # =====================================
 # TEST
 # =====================================

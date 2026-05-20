@@ -430,7 +430,6 @@ async def add_admin_open(
         "Admin ID"
     )
 
-
 @dp.message(
     AddAdmin.wait
 )
@@ -462,28 +461,31 @@ async def save_admin(
     uid = int(
         message.text
     )
+
     try:
 
-        await bot.get_chat(
+        chat = await bot.get_chat(
             uid
         )
 
     except:
 
         await message.answer(
-            """
-            User hali botga kirmagan
-        
-            1. Botga kirsin
-        
-            2. /start bossin
-        
-            3. Keyin admin qiling
-            """
+"""
+User hali botga kirmagan
+
+1. Botga kirsin
+
+2. /start bossin
+
+3. Keyin admin qiling
+"""
         )
 
         return
+
     if uid == SUPER_ADMIN:
+
         await message.answer(
             "⚠ Bu SUPER ADMIN",
             reply_markup=
@@ -494,7 +496,18 @@ async def save_admin(
 
         return
 
+    # ADMIN QO‘SHISH
+
     add_admin_db(uid)
+
+    # REYTINGGA QO‘SHISH
+
+    save_result(
+        uid,
+        chat.full_name,
+        0,
+        0
+    )
 
     await state.clear()
 
@@ -502,8 +515,12 @@ async def save_admin(
 f"""
 ✅ Admin qo‘shildi
 
-ID:
+🆔 ID:
 {uid}
+
+👤 {chat.full_name}
+
+🏆 Reytingga ham qo‘shildi
 """,
         reply_markup=
         admin_menu()
@@ -1711,8 +1728,22 @@ async def leaderboard(
             1
         ) if total else 0
 
+        mark = ""
+
+        # O‘ZINI BELGILASH
+
+        if uid == SUPER_ADMIN:
+
+            if name == message.from_user.full_name:
+                mark = " ⭐"
+
+        else:
+
+            if name == message.from_user.full_name:
+                mark = " ⭐"
+
         text += (
-            f"{i}. 👤 {name}\n"
+            f"{i}. 👤 {name}{mark}\n"
             f"✅ {correct}/{total}\n"
             f"🎯 {percent}%\n\n"
         )
@@ -1720,7 +1751,6 @@ async def leaderboard(
     await message.answer(
         text
     )
-
 # ==================================================
 # FANLAR
 # ==================================================
