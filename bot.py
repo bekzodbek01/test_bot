@@ -1,5 +1,4 @@
 import random
-import os
 import time
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import PollType
@@ -7,14 +6,13 @@ from aiogram.filters import Command
 from aiogram.types import (
     PollAnswer
 )
+from utils.database import *
 
-import json
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram.fsm.storage.memory import MemoryStorage
 import sys
 from docx import Document
 import asyncio
-
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(
         asyncio.WindowsSelectorEventLoopPolicy()
@@ -44,14 +42,6 @@ bot = Bot(TOKEN)
 
 dp = Dispatcher(storage=MemoryStorage())
 
-users_test = {}
-user_results = {}
-leaderboard_data = {}
-USERS_FILE = "users.json"
-ADMINS_FILE = "admins.json"
-
-LEADERBOARD_FILE = "leaderboard.json"
-# ============================
 # ADMIN / USER SYSTEM
 # ============================
 
@@ -68,90 +58,7 @@ from aiogram.fsm.state import (
 )
 from aiogram.fsm.context import FSMContext
 
-# ==========================
-# FILES
-# =========================
-# ==========================
-# USERS
-# ==========================
 
-def load_users():
-
-    if os.path.exists(
-        USERS_FILE
-    ):
-
-        with open(
-            USERS_FILE,
-            "r",
-            encoding="utf-8"
-        ) as f:
-
-            return json.load(f)
-
-    return []
-
-
-def save_users():
-
-    with open(
-        USERS_FILE,
-        "w",
-        encoding="utf-8"
-    ) as f:
-
-        json.dump(
-            users,
-            f,
-            ensure_ascii=False,
-            indent=4
-        )
-
-
-# ==========================
-# ADMINS
-# ==========================
-
-def load_admins():
-
-    if os.path.exists(
-        ADMINS_FILE
-    ):
-
-        with open(
-            ADMINS_FILE,
-            "r",
-            encoding="utf-8"
-        ) as f:
-
-            return json.load(f)
-
-    return []
-
-
-def save_admins():
-
-    with open(
-        ADMINS_FILE,
-        "w",
-        encoding="utf-8"
-    ) as f:
-
-        json.dump(
-            admins,
-            f,
-            ensure_ascii=False,
-            indent=4
-        )
-
-
-# ==========================
-# DATA
-# ==========================
-
-admins = load_admins()
-
-users = load_users()
 # =================
 # PERMISSION
 # =================
@@ -160,13 +67,13 @@ def is_super(uid):
 
     return uid == SUPER_ADMIN
 
-
 def is_admin(uid):
 
-    return (
-        uid == SUPER_ADMIN
-        or uid in admins
-    )
+    if uid == SUPER_ADMIN:
+
+        return True
+
+    return is_admin_db(uid)
 
 
 # =================
@@ -228,10 +135,7 @@ def main_menu(user_id):
 
     ]
 
-    if (
-        user_id == SUPER_ADMIN
-        or user_id in admins
-    ):
+    if is_admin(user_id):
 
         kb.append(
 
@@ -307,12 +211,15 @@ def users_menu():
         keyboard=kb,
         resize_keyboard=True
     )
+
 @dp.message(
     F.text == "📋 User List"
 )
 async def users_list(
         message: Message
 ):
+
+    users = get_users()
 
     if len(users) == 0:
 
@@ -322,29 +229,17 @@ async def users_list(
 
         return
 
-    text = "👥 USERS\n\n"
+    text = "👥 USERS LIST\n\n"
 
-    for uid in users:
+    for uid, fullname in users:
 
-        text += (
-            f"🆔 {uid}\n"
-        )
+        text += f"""
+👤 {fullname}
 
-        try:
+🆔 {uid}
 
-            chat = await bot.get_chat(
-                uid
-            )
-
-            text += (
-                f"👤 {chat.full_name}\n\n"
-            )
-
-        except:
-
-            text += (
-                "👤 Noma'lum\n\n"
-            )
+━━━━━━━━━━
+"""
 
     await message.answer(
         text
@@ -395,7 +290,7 @@ async def admin_list(
         f"{SUPER_ADMIN}\n\n"
     )
 
-    for uid in admins:
+    for uid in get_admins():
 
         text += (
             f"🆔 {uid}\n"
@@ -515,7 +410,7 @@ async def admins_open(
     F.text ==
     "➕ Admin"
 )
-async def add_admin(
+async def add_admin_open(
         message: Message,
         state: FSMContext
 ):
@@ -598,12 +493,7 @@ async def save_admin(
 
         return
 
-    if uid not in admins:
-        admins.append(
-            uid
-        )
-
-        save_admins()
+    add_admin_db(uid)
 
     await state.clear()
 
@@ -641,6 +531,8 @@ async def del_admin_start(
 # =================
 # DELETE ADMIN
 # =================
+
+
 @dp.message(
     DelAdmin.wait
 )
@@ -648,8 +540,6 @@ async def save_del_admin(
         message: Message,
         state: FSMContext
 ):
-
-    # BACK
 
     if message.text == "⬅ Back":
 
@@ -663,8 +553,6 @@ async def save_del_admin(
 
         return
 
-    # ID TEKSHIRISH
-
     if not message.text.isdigit():
 
         await message.answer(
@@ -677,92 +565,34 @@ async def save_del_admin(
         message.text
     )
 
-    # SUPER ADMIN HIMOYA
-
     if uid == SUPER_ADMIN:
-        await message.answer(
-            "❌ SUPER ADMIN o‘chirilmaydi",
-            reply_markup=
-            admins_menu()
-        )
 
-        await state.clear()
+        await message.answer(
+            "❌ SUPER ADMIN o‘chirilmaydi"
+        )
 
         return
 
-    # ADMIN O‘CHIRISH
-
-    if uid in admins:
-
-        admins.remove(
-            uid
-        )
-
-        save_admins()
-
-        # REYTINGDAN O‘CHIRISH
-
-        uid_str = str(
-            uid
-        )
-
-        if uid_str in leaderboard_data:
-
-            del leaderboard_data[
-                uid_str
-            ]
-
-            save_leaderboard()
-
-        await message.answer(
-            f"""
-✅ Admin o‘chirildi
-
-🆔 ID:
-{uid}
-
-📊 Reyting ham tozalandi
-"""
-        )
-
-
-
-    else:
-
-        await message.answer(
-
-            "❌ Admin topilmadi",
-
-            reply_markup=
-
-            admins_menu()
-
-        )
-
-        await state.clear()
-
-        return
+    del_admin_db(uid)
 
     await state.clear()
 
     await message.answer(
+f"""
+🗑 Admin o‘chirildi
 
-        "🛡 ADMINS",
-
+🆔 {uid}
+""",
         reply_markup=
-
         admins_menu()
-
     )
-# =================
-# ADD USER
 # =================
 
 @dp.message(
     F.text ==
     "➕ User"
 )
-async def add_user(
+async def add_user_open(
         message: Message,
         state: FSMContext
 ):
@@ -816,9 +646,11 @@ async def save_user(
     uid = int(
         message.text
     )
-    # SUPER ADMIN HIMOYA
+
+    # SUPER ADMIN
 
     if uid == SUPER_ADMIN:
+
         await message.answer(
             "⚠ Bu SUPER ADMIN",
             reply_markup=
@@ -831,7 +663,7 @@ async def save_user(
 
     try:
 
-        await bot.get_chat(
+        chat = await bot.get_chat(
             uid
         )
 
@@ -851,27 +683,29 @@ User hali botga kirmagan
 
         return
 
-    if uid not in users:
+    # USER BORLIGINI TEKSHIRISH
 
-        users.append(
-            uid
-        )
-
-        save_users()
+    if is_user(uid):
 
         await message.answer(
-            f"""
-✅ User qo‘shildi
-
-🆔 ID:
-{uid}
-"""
+            "⚠ User oldin qo‘shilgan"
         )
 
     else:
 
+        add_user_db(
+            uid,
+            chat.full_name
+        )
         await message.answer(
-            "⚠ User oldin qo‘shilgan"
+f"""
+✅ User qo‘shildi
+
+🆔 ID:
+{uid}
+
+👤 {chat.full_name}
+"""
         )
 
     await state.clear()
@@ -904,7 +738,6 @@ async def del_user_start(
     )
 # =================
 # DELETE USER
-# =================
 @dp.message(
     DelUser.wait
 )
@@ -912,8 +745,6 @@ async def save_del_user(
         message: Message,
         state: FSMContext
 ):
-
-    # BACK
 
     if message.text == "⬅ Back":
 
@@ -927,8 +758,6 @@ async def save_del_user(
 
         return
 
-    # ID TEKSHIRISH
-
     if not message.text.isdigit():
 
         await message.answer(
@@ -941,71 +770,31 @@ async def save_del_user(
         message.text
     )
 
-    # SUPER ADMIN HIMOYA
-
     if uid == SUPER_ADMIN:
 
         await message.answer(
-            "❌ SUPER ADMIN o‘chirib bo‘lmaydi",
-            reply_markup=
-            users_menu()
+            "❌ SUPER ADMIN o‘chirib bo‘lmaydi"
         )
-
-        await state.clear()
 
         return
 
-    # USER O‘CHIRISH
+    if is_user(uid):
 
-    if uid in users:
-
-        users.remove(
-            uid
-        )
-
-        save_users()
-
-        # REYTINGNI O‘CHIRISH
-
-        uid_str = str(
-            uid
-        )
-
-        if uid_str in leaderboard_data:
-
-            del leaderboard_data[
-                uid_str
-            ]
-
-            save_leaderboard()
+        del_user_db(uid)
 
         await message.answer(
-            f"""
+f"""
 🗑 User o‘chirildi
 
-🆔 ID:
-{uid}
-
-📊 Reyting ham tozalandi
+🆔 {uid}
 """
         )
-
 
     else:
 
         await message.answer(
-
-            "❌ User topilmadi",
-
-            reply_markup=
-
-            users_menu()
-
+            "❌ User topilmadi"
         )
-
-        await state.clear()
-
-        return
 
     await state.clear()
 
@@ -1014,11 +803,6 @@ async def save_del_user(
         reply_markup=
         users_menu()
     )
-# =================
-# BACK
-# =================
-# =================
-# BACK
 # =================
 
 @dp.message(
@@ -1075,7 +859,13 @@ async def home(
         )
     )
 
+# =====================================
+# TEST DATA
+# =====================================
 
+users_test = {}
+
+user_results = {}
 
 def clean_text(text):
     return " ".join(str(text).split()).strip()
@@ -1083,73 +873,6 @@ def clean_text(text):
 
 # ==================================================
 # SAVE / LOAD LEADERBOARD
-# ==================================================
-# ==================================================
-# SAVE / LOAD LEADERBOARD
-# ==================================================
-
-def load_leaderboard():
-
-    global leaderboard_data
-
-    # FILE YO‘Q
-
-    if not os.path.exists(
-            LEADERBOARD_FILE
-    ):
-
-        leaderboard_data = {}
-
-        return
-
-    try:
-
-        with open(
-                LEADERBOARD_FILE,
-                "r",
-                encoding="utf-8"
-        ) as f:
-
-            text = f.read().strip()
-
-            # BO‘SH FILE
-
-            if text == "":
-
-                leaderboard_data = {}
-
-            else:
-
-                leaderboard_data = json.loads(
-                    text
-                )
-
-    except Exception:
-
-        leaderboard_data = {}
-
-        save_leaderboard()
-
-
-def save_leaderboard():
-
-    with open(
-            LEADERBOARD_FILE,
-            "w",
-            encoding="utf-8"
-    ) as f:
-
-        json.dump(
-            leaderboard_data,
-            f,
-            ensure_ascii=False,
-            indent=4
-        )
-
-# ==================================================
-# LOAD QUESTIONS
-# ==================================================
-
 
 # =========================================
 # LOAD QUESTIONS
@@ -1297,12 +1020,20 @@ def load_questions():
 
 
 ALL_QUESTIONS = load_questions()
-load_leaderboard()
+
 
 
 # ==================================================
 # START
 # ==================================================
+# ==================================================
+# START
+# ==================================================
+
+# ==================================================
+# START
+# ==================================================
+
 @dp.message(
     Command("start")
 )
@@ -1312,110 +1043,169 @@ async def start(
 
     uid = message.from_user.id
 
-    # SUPER ADMIN
-    if uid == SUPER_ADMIN:
-        text = f"""
-        🎓 PROFESSIONAL QUIZ BOT
+    # ==========================
+    # RUXSAT
+    # ==========================
 
-        ━━━━━━━━━━━━━━━━━━
-
-        📚 Savollar bazasi
-        └ 📝 {len(ALL_QUESTIONS)} ta
-
-        👥 Users
-        └ 👤 {len(users)} ta
-
-        🛡 Adminlar
-        └ 👑 {len(admins)} ta
-
-        ━━━━━━━━━━━━━━━━━━
-
-        ⚡ Imkoniyatlar:
-
-        ✅ Quiz test
-
-        🎯 20 ta tasodifiy savol
-
-
-        📈 Reyting
-
-        📊 Natijalar
-
-        📚 Fanlar bo‘yicha test
-
-        ━━━━━━━━━━━━━━━━━━
-
-        🚀 Tayyormisiz?
-
-        Testni boshlash tugmasini bosing
-        """
+    if (
+        uid != SUPER_ADMIN
+        and not is_admin_db(uid)
+        and not is_user(uid)
+    ):
 
         await message.answer(
-            text,
-            reply_markup=
-            main_menu(
-                uid
-            )
-        )
-
-        return
-
-    # ADMIN
-    if uid in admins:
-
-        text = f"""
-🛡 ADMIN
-
-📚 Savollar:
-{len(ALL_QUESTIONS)}
-
-👥 Users:
-{len(users)}
 """
-
-        await message.answer(
-            text,
-            reply_markup=
-            main_menu(
-                uid
-            )
-        )
-
-        return
-
-    # USER QO‘SHILGAN
-    if uid in users:
-
-        text = f"""
-🎓 PROFESSIONAL QUIZ BOT
-
-📚 Savollar:
-{len(ALL_QUESTIONS)}
-"""
-
-        await message.answer(
-            text,
-            reply_markup=
-            main_menu(
-                uid
-            )
-        )
-
-        return
-
-    # QO‘SHILMAGAN
-    await message.answer(
-"""
-⛔ Sizga ruxsat berilmagan
+⛔ Sizga ruxsat yo‘q
 
 Botdan foydalanish uchun:
-📩 Abdumomin ga murojaat qiling
-         yoki 
+
 📩 @dasturchi_0101 ga murojaat qiling
 
 Admin sizni qo‘shgandan keyin foydalanasiz.
 """
+        )
+
+        return
+
+    # ==========================
+    # SUPER ADMIN
+    # ==========================
+
+    if uid == SUPER_ADMIN:
+
+        text = f"""
+👑 <b>SUPER ADMIN PANEL</b>
+
+━━━━━━━━━━━━━━━━━━
+
+📚 <b>Test bazasi</b>
+
+📝 Savollar:
+<b>{len(ALL_QUESTIONS)}</b>
+
+👥 Users:
+<b>{len(get_users())}</b>
+
+🛡 Adminlar:
+<b>{len(get_admins())}</b>
+
+━━━━━━━━━━━━━━━━━━
+
+⚙ Imkoniyatlar
+
+➕ User qo‘shish
+
+❌ User o‘chirish
+
+🛡 Admin boshqaruvi
+
+🏆 Reyting
+
+📊 Statistika
+
+📚 Fanlar
+
+━━━━━━━━━━━━━━━━━━
+
+🚀 Tizim tayyor
+"""
+
+        await message.answer(
+            text,
+            parse_mode="HTML",
+            reply_markup=
+            main_menu(uid)
+        )
+
+        return
+
+    # ==========================
+    # ADMIN
+    # ==========================
+
+    if is_admin_db(uid):
+
+        text = f"""
+👑 <b>ADMIN PANEL</b>
+
+━━━━━━━━━━━━━━━━━━
+
+📚 <b>Test bazasi</b>
+
+📝 Savollar:
+<b>{len(ALL_QUESTIONS)}</b>
+
+👥 Users:
+<b>{len(get_users())}</b>
+
+🛡 Adminlar:
+<b>{len(get_admins())}</b>
+
+━━━━━━━━━━━━━━━━━━
+
+⚙ Boshqaruv
+
+➕ User qo‘shish
+
+❌ User o‘chirish
+
+🏆 Reyting
+
+📊 Statistika
+
+📚 Fanlar
+
+━━━━━━━━━━━━━━━━━━
+
+🚀 Bot ishga tayyor
+"""
+
+        await message.answer(
+            text,
+            parse_mode="HTML",
+            reply_markup=
+            main_menu(uid)
+        )
+
+        return
+
+    # ==========================
+    # USER
+    # ==========================
+
+    text = f"""
+🎓 <b>QUIZ BOT</b>
+
+━━━━━━━━━━━━━━━━━━
+
+📚 Savollar:
+<b>{len(ALL_QUESTIONS)}</b>
+
+🏆 Reyting
+
+📊 Natijalar
+
+📘 Fanlar bo‘yicha test
+
+🌍 Umumiy test
+
+━━━━━━━━━━━━━━━━━━
+
+✅ Assalomu alaykum
+
+Quiz botga xush kelibsiz
+
+🚀 Testni boshlash tugmasini bosing
+"""
+
+    await message.answer(
+        text,
+        parse_mode="HTML",
+        reply_markup=
+        main_menu(uid)
     )
+
+
 
 # ==================================================
 # TEST MENU
@@ -1432,10 +1222,11 @@ async def test_menu(
     # RUXSAT TEKSHIRISH
 
     if (
-        uid != SUPER_ADMIN
-        and uid not in admins
-        and uid not in users
+            uid != SUPER_ADMIN
+            and not is_admin_db(uid)
+            and not is_user(uid)
     ):
+
 
         await message.answer(
 """
@@ -1670,19 +1461,12 @@ async def send_question(user_id):
         # GLOBAL REYTING
         # =====================================
 
-        if str(user_id) not in leaderboard_data:
-            leaderboard_data[str(user_id)] = {
-
-                "name": data["full_name"],
-                "correct": 0,
-                "total": 0,
-            }
-
-        leaderboard_data[str(user_id)]["correct"] += data["correct"]
-
-        leaderboard_data[str(user_id)]["total"] += total
-
-        save_leaderboard()
+        save_result(
+            user_id,
+            data["full_name"],
+            data["correct"],
+            total
+        )
 
         await bot.send_message(
             data["chat_id"],
@@ -1833,88 +1617,108 @@ async def poll_answer_handler(
 # ==================================================
 # RESULTS
 # ==================================================
+@dp.message(
+    F.text == "📊 Natijalar"
+)
+async def results(
+        message: Message
+):
 
-@dp.message(F.text == "📊 Natijalar")
-async def results(message: Message):
-    user_id = message.from_user.id
+    uid = message.from_user.id
 
-    if user_id not in user_results:
+    if (
+            uid != SUPER_ADMIN
+            and not is_admin_db(uid)
+            and not is_user(uid)
+    ):
+
         await message.answer(
-            "❌ Siz hali test ishlamagansiz"
+"""
+⛔ Sizda ruxsat yo‘q
+"""
         )
+
+        return
+
+    if uid not in user_results:
+
+        await message.answer(
+            "❌ Natija yo‘q"
+        )
+
         return
 
     await message.answer(
-        user_results[user_id]
+        user_results[uid]
     )
 
 
 # ==================================================
 # GLOBAL REYTING
 # ==================================================
+@dp.message(
+    F.text == "🏆 Reyting"
+)
+async def leaderboard(
+        message: Message
+):
 
-@dp.message(F.text == "🏆 Reyting")
-async def leaderboard(message: Message):
-    # reyting bo'sh
-    if not leaderboard_data:
+    uid = message.from_user.id
+
+    if (
+            uid != SUPER_ADMIN
+            and not is_admin_db(uid)
+            and not is_user(uid)
+    ):
+
         await message.answer(
-            "❌ Reyting hali bo'sh"
+"""
+⛔ Reytingni ko‘rishga ruxsat yo‘q
+"""
         )
+
         return
 
-    board = []
+    board = get_leaderboard()
 
-    # =====================================
-    # DATA
-    # =====================================
+    if len(board) == 0:
 
-    for user_id, data in leaderboard_data.items():
-        correct = data["correct"]
-        total = data["total"]
+        await message.answer(
+            "❌ Reyting bo‘sh"
+        )
 
-        percent = round(
-            (correct / total) * 100,
-            1
-        ) if total > 0 else 0
-
-        board.append({
-            "name": data["name"],
-            "correct": correct,
-            "total": total,
-            "percent": percent
-        })
-
-    # =====================================
-    # SORT
-    # =====================================
-
-    board.sort(
-        key=lambda x: (
-            x["correct"],
-            x["percent"]
-        ),
-        reverse=True
-    )
-
-    # =====================================
-    # TEXT
-    # =====================================
+        return
 
     text = "🏆 GLOBAL REYTING\n\n"
 
-    for i, user in enumerate(board[:20], start=1):
+    for i, row in enumerate(
+            board,
+            start=1
+    ):
+
+        name = row[0]
+
+        correct = row[1]
+
+        total = row[2]
+
+        percent = round(
+            (
+                correct /
+                total
+            ) * 100,
+            1
+        ) if total else 0
+
         text += (
-            f"{i}. 👤 {user['name']}\n"
-            f"✅ {user['correct']}/{user['total']} "
-            f"({user['percent']}%)\n\n"
+            f"{i}. 👤 {name}\n"
+            f"✅ {correct}/{total}\n"
+            f"🎯 {percent}%\n\n"
         )
 
-    # =====================================
-    # SEND
-    # =====================================
-
-    await message.answer(text)
-
+    await message.answer(
+        text
+    )
 
 # ==================================================
 # FANLAR
@@ -2037,18 +1841,12 @@ async def stop_test(message: Message):
     # GLOBAL REYTING
     # =====================================
 
-    if str(user_id) not in leaderboard_data:
-        leaderboard_data[str(user_id)] = {
-            "name": message.from_user.full_name,
-            "correct": 0,
-            "total": 0,
-        }
-
-    leaderboard_data[str(user_id)]["correct"] += data["correct"]
-
-    leaderboard_data[str(user_id)]["total"] += total
-
-    save_leaderboard()
+    save_result(
+        user_id,
+        message.from_user.full_name,
+        data["correct"],
+        total
+    )
 
     await message.answer(
         result_text,
