@@ -302,23 +302,18 @@ total
 
     conn.commit()
 
-
 def get_leaderboard():
 
     cursor.execute(
 """
 SELECT
-l.fullname,
-l.correct,
-l.total
+fullname,
+correct,
+total
 
-FROM leaderboard l
+FROM leaderboard
 
-INNER JOIN users u
-
-ON l.user_id = u.id
-
-ORDER BY l.correct DESC
+ORDER BY correct DESC
 """
     )
 
@@ -327,7 +322,6 @@ ORDER BY l.correct DESC
 # =====================================
 # TOZALASH
 # =====================================
-
 def clear_fake_users():
 
     cursor.execute(
@@ -339,14 +333,16 @@ WHERE user_id NOT IN (
 SELECT id
 FROM users
 
+UNION
+
+SELECT id
+FROM admins
+
 )
 """
     )
 
     conn.commit()
-
-
-clear_fake_users()
 
 # =====================================
 # TEST
