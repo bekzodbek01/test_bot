@@ -1,32 +1,38 @@
 # import random
-# import os
 # import time
 # from aiogram import Bot, Dispatcher, F
 # from aiogram.enums import PollType
 # from aiogram.filters import Command
 # from aiogram.types import (
-#     Message,
-#     KeyboardButton,
 #     PollAnswer
 # )
+# from utils.database import *
+# clear_fake_users()
 #
-# import json
 # from aiogram.utils.keyboard import ReplyKeyboardBuilder
 # from aiogram.fsm.storage.memory import MemoryStorage
 # import sys
 # from docx import Document
 # import asyncio
-#
 # if sys.platform.startswith("win"):
 #     asyncio.set_event_loop_policy(
 #         asyncio.WindowsSelectorEventLoopPolicy()
 #     )
 # import logging
-#
 # from dotenv import load_dotenv
+# import os
 #
 # load_dotenv()
-# TOKEN = os.getenv("BOT_TOKEN")
+#
+# TOKEN = os.getenv(
+#     "BOT_TOKEN"
+# )
+# SUPER_ADMIN = int(
+#     os.getenv(
+#         "SUPER_ADMIN",
+#         "0"
+#     )
+# )
 # logging.basicConfig(level=logging.INFO)
 #
 # DATA_FOLDER = "data"
@@ -37,16 +43,847 @@
 #
 # dp = Dispatcher(storage=MemoryStorage())
 #
+# # ADMIN / USER SYSTEM
+# # ============================
+#
+# from aiogram.types import (
+#     Message,
+#     ReplyKeyboardMarkup,
+#     KeyboardButton
+# )
+#
+# from aiogram import F
+# from aiogram.fsm.state import (
+#     State,
+#     StatesGroup
+# )
+# from aiogram.fsm.context import FSMContext
+#
+#
+# # =================
+# # PERMISSION
+# # =================
+#
+# def is_super(uid):
+#
+#     return uid == SUPER_ADMIN
+#
+# def is_admin(uid):
+#
+#     if uid == SUPER_ADMIN:
+#
+#         return True
+#
+#     return is_admin_db(uid)
+#
+#
+# # =================
+# # STATE
+# # =================
+#
+# class AddAdmin(
+#     StatesGroup
+# ):
+#     wait = State()
+#
+#
+# class DelAdmin(
+#     StatesGroup
+# ):
+#     wait = State()
+#
+#
+# class AddUser(
+#     StatesGroup
+# ):
+#     wait = State()
+#
+#
+# class DelUser(
+#     StatesGroup
+# ):
+#     wait = State()
+#
+#
+# # =================
+# # MENU
+# # =================
+# def main_menu(user_id):
+#
+#     kb = [
+#
+#         [
+#             KeyboardButton(
+#                 text="🚀 Testni boshlash"
+#             )
+#         ],
+#
+#         [
+#             KeyboardButton(
+#                 text="📊 Natijalar"
+#             ),
+#
+#             KeyboardButton(
+#                 text="🏆 Reyting"
+#             )
+#         ],
+#
+#         [
+#             KeyboardButton(
+#                 text="📚 Fanlar"
+#             )
+#         ]
+#
+#     ]
+#
+#     if is_admin(user_id):
+#
+#         kb.append(
+#
+#             [
+#                 KeyboardButton(
+#                     text="👑 Admin Panel"
+#                 )
+#             ]
+#
+#         )
+#
+#     return ReplyKeyboardMarkup(
+#         keyboard=kb,
+#         resize_keyboard=True
+#     )
+#
+# def admin_menu():
+#
+#     kb = [
+#
+#         [
+#             KeyboardButton(
+#                 text="👥 Users"
+#             ),
+#
+#             KeyboardButton(
+#                 text="🛡 Admin"
+#             )
+#         ],
+#
+#         [
+#             KeyboardButton(
+#                 text="🏠 Home"
+#             )
+#         ]
+#
+#     ]
+#
+#     return ReplyKeyboardMarkup(
+#         keyboard=kb,
+#         resize_keyboard=True
+#     )
+#
+# def users_menu():
+#
+#     kb = [
+#
+#         [
+#             KeyboardButton(
+#                 text="➕ User"
+#             ),
+#
+#             KeyboardButton(
+#                 text="❌ Del User"
+#             )
+#         ],
+#
+#         [
+#             KeyboardButton(
+#                 text="📋 User List"
+#             )
+#         ],
+#
+#         [
+#             KeyboardButton(
+#                 text="⬅ Back"
+#             )
+#         ]
+#
+#     ]
+#
+#     return ReplyKeyboardMarkup(
+#         keyboard=kb,
+#         resize_keyboard=True
+#     )
+#
+# @dp.message(
+#     F.text == "📋 User List"
+# )
+# async def users_list(
+#         message: Message
+# ):
+#
+#     users = get_users()
+#
+#     if len(users) == 0:
+#
+#         await message.answer(
+#             "Bo‘sh"
+#         )
+#
+#         return
+#
+#     text = "👥 USERS LIST\n\n"
+#
+#     for uid, fullname in users:
+#
+#         text += f"""
+# 👤 {fullname}
+#
+# 🆔 {uid}
+#
+# ━━━━━━━━━━
+# """
+#
+#     await message.answer(
+#         text
+#     )
+# def admins_menu():
+#
+#     kb = [
+#
+#         [
+#             KeyboardButton(
+#                 text="➕ Admin"
+#             ),
+#
+#             KeyboardButton(
+#                 text="❌ Del Admin"
+#             )
+#         ],
+#
+#         [
+#             KeyboardButton(
+#                 text="📋 Admin List"
+#             )
+#         ],
+#
+#         [
+#             KeyboardButton(
+#                 text="⬅ Back"
+#             )
+#         ]
+#
+#     ]
+#
+#     return ReplyKeyboardMarkup(
+#         keyboard=kb,
+#         resize_keyboard=True
+#     )
+# @dp.message(
+#     F.text == "📋 Admin List"
+# )
+# async def admin_list(
+#         message: Message
+# ):
+#
+#     text = "🛡 ADMINS\n\n"
+#
+#     text += (
+#         f"👑 SUPER\n"
+#         f"{SUPER_ADMIN}\n\n"
+#     )
+#
+#     for uid in get_admins():
+#
+#         text += (
+#             f"🆔 {uid}\n"
+#         )
+#
+#         try:
+#
+#             chat = await bot.get_chat(
+#                 uid
+#             )
+#
+#             text += (
+#                 f"👤 {chat.full_name}\n\n"
+#             )
+#
+#         except:
+#
+#             text += (
+#                 "👤 Noma'lum\n\n"
+#             )
+#
+#     await message.answer(
+#         text
+#     )
+#
+# # =================
+# # START
+# # =================
+# # =================
+# # OPEN ADMIN
+# # =================
+#
+# @dp.message(
+#     F.text ==
+#     "👑 Admin Panel"
+# )
+# async def open_admin(
+#         message: Message
+# ):
+#
+#     if not is_admin(
+#             message.from_user.id
+#     ):
+#
+#         await message.answer(
+#             "❌ Ruxsat yo‘q"
+#         )
+#
+#         return
+#
+#     await message.answer(
+#         "👑 PANEL",
+#         reply_markup=
+#         admin_menu()
+#     )
+#
+#
+# # =================
+# # USERS
+# # =================
+#
+# @dp.message(
+#     F.text ==
+#     "👥 Users"
+# )
+# async def users_open(
+#         message: Message
+# ):
+#
+#     if not is_admin(
+#             message.from_user.id
+#     ):
+#
+#         return
+#
+#     await message.answer(
+#         "👥 USERS",
+#         reply_markup=
+#         users_menu()
+#     )
+#
+#
+# # =================
+# # ADMINS
+# # =================
+#
+# @dp.message(
+#     F.text ==
+#     "🛡 Admin"
+# )
+# async def admins_open(
+#         message: Message
+# ):
+#
+#     if not is_super(
+#             message.from_user.id
+#     ):
+#
+#         await message.answer(
+#             "❌ Faqat super admin"
+#         )
+#
+#         return
+#
+#     await message.answer(
+#         "🛡 ADMINS",
+#         reply_markup=
+#         admins_menu()
+#     )
+#
+#
+# # =================
+# # ADD ADMIN
+# # =================
+#
+# @dp.message(
+#     F.text ==
+#     "➕ Admin"
+# )
+# async def add_admin_open(
+#         message: Message,
+#         state: FSMContext
+# ):
+#
+#     if not is_super(
+#             message.from_user.id
+#     ):
+#
+#         return
+#
+#     await state.set_state(
+#         AddAdmin.wait
+#     )
+#
+#     await message.answer(
+#         "Admin ID"
+#     )
+#
+# @dp.message(
+#     AddAdmin.wait
+# )
+# async def save_admin(
+#         message: Message,
+#         state: FSMContext
+# ):
+#
+#     if message.text == "⬅ Back":
+#
+#         await state.clear()
+#
+#         await message.answer(
+#             "👑 ADMIN PANEL",
+#             reply_markup=
+#             admin_menu()
+#         )
+#
+#         return
+#
+#     if not message.text.isdigit():
+#
+#         await message.answer(
+#             "Faqat ID yuboring"
+#         )
+#
+#         return
+#
+#     uid = int(
+#         message.text
+#     )
+#
+#     try:
+#
+#         chat = await bot.get_chat(
+#             uid
+#         )
+#
+#     except:
+#
+#         await message.answer(
+# """
+# User hali botga kirmagan
+#
+# 1. Botga kirsin
+#
+# 2. /start bossin
+#
+# 3. Keyin admin qiling
+# """
+#         )
+#
+#         return
+#
+#     if uid == SUPER_ADMIN:
+#
+#         await message.answer(
+#             "⚠ Bu SUPER ADMIN",
+#             reply_markup=
+#             admin_menu()
+#         )
+#
+#         await state.clear()
+#
+#         return
+#
+#     # ADMIN QO‘SHISH
+#
+#     add_admin_db(uid)
+#
+#     # REYTINGGA QO‘SHISH
+#
+#     save_result(
+#         uid,
+#         chat.full_name,
+#         0,
+#         0
+#     )
+#
+#     await state.clear()
+#
+#     await message.answer(
+# f"""
+# ✅ Admin qo‘shildi
+#
+# 🆔 ID:
+# {uid}
+#
+# 👤 {chat.full_name}
+#
+# 🏆 Reytingga ham qo‘shildi
+# """,
+#         reply_markup=
+#         admin_menu()
+#     )
+# @dp.message(
+#     F.text == "❌ Del Admin"
+# )
+# async def del_admin_start(
+#         message: Message,
+#         state: FSMContext
+# ):
+#
+#     if not is_super(
+#             message.from_user.id
+#     ):
+#
+#         return
+#
+#     await state.set_state(
+#         DelAdmin.wait
+#     )
+#
+#     await message.answer(
+#         "O‘chiriladigan Admin ID yuboring"
+#     )
+# # =================
+# # DELETE ADMIN
+# # =================
+#
+#
+# @dp.message(
+#     DelAdmin.wait
+# )
+# async def save_del_admin(
+#         message: Message,
+#         state: FSMContext
+# ):
+#
+#     if message.text == "⬅ Back":
+#
+#         await state.clear()
+#
+#         await message.answer(
+#             "🛡 ADMINS",
+#             reply_markup=
+#             admins_menu()
+#         )
+#
+#         return
+#
+#     if not message.text.isdigit():
+#
+#         await message.answer(
+#             "Faqat ID yuboring"
+#         )
+#
+#         return
+#
+#     uid = int(
+#         message.text
+#     )
+#
+#     if uid == SUPER_ADMIN:
+#
+#         await message.answer(
+#             "❌ SUPER ADMIN o‘chirilmaydi"
+#         )
+#
+#         return
+#
+#     del_admin_db(uid)
+#
+#     await state.clear()
+#
+#     await message.answer(
+# f"""
+# 🗑 Admin o‘chirildi
+#
+# 🆔 {uid}
+# """,
+#         reply_markup=
+#         admins_menu()
+#     )
+# # =================
+#
+# @dp.message(
+#     F.text ==
+#     "➕ User"
+# )
+# async def add_user_open(
+#         message: Message,
+#         state: FSMContext
+# ):
+#
+#     if not is_admin(
+#             message.from_user.id
+#     ):
+#
+#         return
+#
+#     await state.set_state(
+#         AddUser.wait
+#     )
+#
+#     await message.answer(
+#         "User ID"
+#     )
+#
+# @dp.message(
+#     AddUser.wait
+# )
+# async def save_user(
+#         message: Message,
+#         state: FSMContext
+# ):
+#
+#     # BACK
+#
+#     if message.text == "⬅ Back":
+#
+#         await state.clear()
+#
+#         await message.answer(
+#             "👥 USERS",
+#             reply_markup=
+#             users_menu()
+#         )
+#
+#         return
+#
+#     # ID
+#
+#     if not message.text.isdigit():
+#
+#         await message.answer(
+#             "ID kiriting"
+#         )
+#
+#         return
+#
+#     uid = int(
+#         message.text
+#     )
+#
+#     # SUPER ADMIN
+#
+#     if uid == SUPER_ADMIN:
+#
+#         await message.answer(
+#             "⚠ Bu SUPER ADMIN",
+#             reply_markup=
+#             users_menu()
+#         )
+#
+#         await state.clear()
+#
+#         return
+#
+#     try:
+#
+#         chat = await bot.get_chat(
+#             uid
+#         )
+#
+#     except:
+#
+#         await message.answer(
+# """
+# User hali botga kirmagan
+#
+# 1. Botga kirsin
+#
+# 2. /start bossin
+#
+# 3. Keyin qo‘shing
+# """
+#         )
+#
+#         return
+#
+#     # USER BORLIGINI TEKSHIRISH
+#
+#     if is_user(uid):
+#
+#         await message.answer(
+#             "⚠ User oldin qo‘shilgan"
+#         )
+#
+#     else:
+#
+#         add_user_db(
+#             uid,
+#             chat.full_name
+#         )
+#         await message.answer(
+# f"""
+# ✅ User qo‘shildi
+#
+# 🆔 ID:
+# {uid}
+#
+# 👤 {chat.full_name}
+# """
+#         )
+#
+#     await state.clear()
+#
+#     await message.answer(
+#         "👥 USERS",
+#         reply_markup=
+#         users_menu()
+#     )
+# @dp.message(
+#     F.text == "❌ Del User"
+# )
+# async def del_user_start(
+#         message: Message,
+#         state: FSMContext
+# ):
+#
+#     if not is_admin(
+#             message.from_user.id
+#     ):
+#
+#         return
+#
+#     await state.set_state(
+#         DelUser.wait
+#     )
+#
+#     await message.answer(
+#         "O‘chiriladigan ID yuboring"
+#     )
+# # =================
+# # DELETE USER
+# @dp.message(
+#     DelUser.wait
+# )
+# async def save_del_user(
+#         message: Message,
+#         state: FSMContext
+# ):
+#
+#     if message.text == "⬅ Back":
+#
+#         await state.clear()
+#
+#         await message.answer(
+#             "👥 USERS",
+#             reply_markup=
+#             users_menu()
+#         )
+#
+#         return
+#
+#     if not message.text.isdigit():
+#
+#         await message.answer(
+#             "ID kiriting"
+#         )
+#
+#         return
+#
+#     uid = int(
+#         message.text
+#     )
+#
+#     if uid == SUPER_ADMIN:
+#
+#         await message.answer(
+#             "❌ SUPER ADMIN o‘chirib bo‘lmaydi"
+#         )
+#
+#         return
+#
+#     if is_user(uid):
+#
+#         del_user_db(uid)
+#
+#         await message.answer(
+# f"""
+# 🗑 User o‘chirildi
+#
+# 🆔 {uid}
+# """
+#         )
+#
+#     else:
+#
+#         await message.answer(
+#             "❌ User topilmadi"
+#         )
+#
+#     await state.clear()
+#
+#     await message.answer(
+#         "👥 USERS",
+#         reply_markup=
+#         users_menu()
+#     )
+# # =================
+#
+# @dp.message(
+#     F.text == "⬅ Back"
+# )
+# async def back(
+#         message: Message
+# ):
+#
+#     uid = message.from_user.id
+#
+#     # SUPER ADMIN yoki ADMIN
+#
+#     if is_admin(
+#             uid
+#     ):
+#
+#         await message.answer(
+#             "👑 PANEL",
+#             reply_markup=
+#             admin_menu()
+#         )
+#
+#         return
+#
+#     # ODDIY USER
+#
+#     await message.answer(
+#         "🏠 HOME",
+#         reply_markup=
+#         main_menu(
+#             uid
+#         )
+#     )
+#
+#
+# # =================
+# # HOME
+# # =================
+#
+# @dp.message(
+#     F.text ==
+#     "🏠 Home"
+# )
+# async def home(
+#         message: Message
+# ):
+#
+#     await message.answer(
+#         "HOME",
+#         reply_markup=
+#         main_menu(
+#             message.from_user.id
+#         )
+#     )
+#
+# # =====================================
+# # TEST DATA
+# # =====================================
+#
 # users_test = {}
+#
 # user_results = {}
-# leaderboard_data = {}
-#
-# LEADERBOARD_FILE = "leaderboard.json"
-#
-#
-# # ==================================================
-# # CLEAN TEXT
-# # ==================================================
 #
 # def clean_text(text):
 #     return " ".join(str(text).split()).strip()
@@ -54,66 +891,6 @@
 #
 # # ==================================================
 # # SAVE / LOAD LEADERBOARD
-# # ==================================================
-#
-# def load_leaderboard():
-#     global leaderboard_data
-#
-#     if os.path.exists(LEADERBOARD_FILE):
-#
-#         with open(
-#                 LEADERBOARD_FILE,
-#                 "r",
-#                 encoding="utf-8"
-#         ) as f:
-#
-#             leaderboard_data = json.load(f)
-#
-#     else:
-#         leaderboard_data = {}
-#
-#
-# def save_leaderboard():
-#     with open(
-#             LEADERBOARD_FILE,
-#             "w",
-#             encoding="utf-8"
-#     ) as f:
-#         json.dump(
-#             leaderboard_data,
-#             f,
-#             ensure_ascii=False,
-#             indent=4
-#         )
-#
-#
-# # ==================================================
-# # MAIN MENU
-# # ==================================================
-#
-# def main_menu():
-#     kb = ReplyKeyboardBuilder()
-#
-#     kb.row(
-#         KeyboardButton(text="🚀 Testni boshlash")
-#     )
-#
-#     kb.row(
-#         KeyboardButton(text="📊 Natijalar"),
-#         KeyboardButton(text="🏆 Reyting")
-#     )
-#
-#     kb.row(
-#         KeyboardButton(text="📚 Fanlar")
-#     )
-#
-#     return kb.as_markup(resize_keyboard=True)
-#
-#
-# # ==================================================
-# # LOAD QUESTIONS
-# # ==================================================
-#
 #
 # # =========================================
 # # LOAD QUESTIONS
@@ -261,77 +1038,296 @@
 #
 #
 # ALL_QUESTIONS = load_questions()
-# load_leaderboard()
+#
 #
 #
 # # ==================================================
 # # START
 # # ==================================================
+# # ==================================================
+# # START
+# # ==================================================
 #
-# @dp.message(Command("start"))
-# async def start(message: Message):
+# # ==================================================
+# # START
+# # ==================================================
+#
+# @dp.message(
+#     Command("start")
+# )
+# async def start(
+#         message: Message
+# ):
+#
+#     uid = message.from_user.id
+#
+#     # ==========================
+#     # RUXSAT
+#     # ==========================
+#
+#     if (
+#         uid != SUPER_ADMIN
+#         and not is_admin_db(uid)
+#         and not is_user(uid)
+#     ):
+#
+#         await message.answer(
+# """
+# ⛔ Sizga ruxsat yo‘q
+#
+# Botdan foydalanish uchun:
+#
+# 📩 @dasturchi_0101 ga murojaat qiling
+#
+# Admin sizni qo‘shgandan keyin foydalanasiz.
+# """
+#         )
+#
+#         return
+#
+#     # ==========================
+#     # SUPER ADMIN
+#     # ==========================
+#
+#     if uid == SUPER_ADMIN:
+#
+#         text = f"""
+# 👑 <b>SUPER ADMIN PANEL</b>
+#
+# ━━━━━━━━━━━━━━━━━━
+#
+# 📚 <b>Test bazasi</b>
+#
+# 📝 Savollar:
+# <b>{len(ALL_QUESTIONS)}</b>
+#
+# 👥 Users:
+# <b>{len(get_users())}</b>
+#
+# 🛡 Adminlar:
+# <b>{len(get_admins())}</b>
+#
+# ━━━━━━━━━━━━━━━━━━
+#
+# ⚙ Imkoniyatlar
+#
+# ➕ User qo‘shish
+#
+# ❌ User o‘chirish
+#
+# 🛡 Admin boshqaruvi
+#
+# 🏆 Reyting
+#
+# 📊 Statistika
+#
+# 📚 Fanlar
+#
+# ━━━━━━━━━━━━━━━━━━
+#
+# 🚀 Tizim tayyor
+# """
+#
+#         await message.answer(
+#             text,
+#             parse_mode="HTML",
+#             reply_markup=
+#             main_menu(uid)
+#         )
+#
+#         return
+#
+#     # ==========================
+#     # ADMIN
+#     # ==========================
+#
+#     if is_admin_db(uid):
+#
+#         text = f"""
+# 👑 <b>ADMIN PANEL</b>
+#
+# ━━━━━━━━━━━━━━━━━━
+#
+# 📚 <b>Test bazasi</b>
+#
+# 📝 Savollar:
+# <b>{len(ALL_QUESTIONS)}</b>
+#
+# 👥 Users:
+# <b>{len(get_users())}</b>
+#
+# 🛡 Adminlar:
+# <b>{len(get_admins())}</b>
+#
+# ━━━━━━━━━━━━━━━━━━
+#
+# ⚙ Boshqaruv
+#
+# ➕ User qo‘shish
+#
+# ❌ User o‘chirish
+#
+# 🏆 Reyting
+#
+# 📊 Statistika
+#
+# 📚 Fanlar
+#
+# ━━━━━━━━━━━━━━━━━━
+#
+# 🚀 Bot ishga tayyor
+# """
+#
+#         await message.answer(
+#             text,
+#             parse_mode="HTML",
+#             reply_markup=
+#             main_menu(uid)
+#         )
+#
+#         return
+#
+#     # ==========================
+#     # USER
+#     # ==========================
+#
 #     text = f"""
-# 🎓 PROFESSIONAL QUIZ BOT
+# 🎓 <b>QUIZ BOT</b>
 #
-# 📚 Jami savollar:
-# {len(ALL_QUESTIONS)}
+# ━━━━━━━━━━━━━━━━━━
 #
-# ✅ Quiz Poll
-# ✅ 20 random savol
-# ✅ 25 sekund timer
-# ✅ Reyting
-# ✅ Natijalar
+# 📚 Savollar:
+# <b>{len(ALL_QUESTIONS)}</b>
+#
+# 🏆 Reyting
+#
+# 📊 Natijalar
+#
+# 📘 Fanlar bo‘yicha test
+#
+# 🌍 Umumiy test
+#
+# ━━━━━━━━━━━━━━━━━━
+#
+# ✅ Assalomu alaykum
+#
+# Quiz botga xush kelibsiz
+#
+# 🚀 Testni boshlash tugmasini bosing
 # """
 #
 #     await message.answer(
 #         text,
-#         reply_markup=main_menu()
+#         parse_mode="HTML",
+#         reply_markup=
+#         main_menu(uid)
 #     )
+#
 #
 #
 # # ==================================================
 # # TEST MENU
 # # ==================================================
+# @dp.message(
+#     F.text == "🚀 Testni boshlash"
+# )
+# async def test_menu(
+#         message: Message
+# ):
 #
-# @dp.message(F.text == "🚀 Testni boshlash")
-# async def test_menu(message: Message):
+#     uid = message.from_user.id
+#
+#     # RUXSAT TEKSHIRISH
+#
+#     if (
+#             uid != SUPER_ADMIN
+#             and not is_admin_db(uid)
+#             and not is_user(uid)
+#     ):
+#
+#
+#         await message.answer(
+# """
+# ⛔ Sizga ruxsat berilmagan
+#
+# Botdan foydalanish uchun:
+#
+# 📩 @dasturchi_0101 ga murojaat qiling
+#
+# Admin sizni qo‘shgandan keyin test ishlaydi.
+# """
+#         )
+#
+#         return
+#
 #     counts = {}
 #
 #     for q in ALL_QUESTIONS:
-#         subject = q["subject"]
 #
-#         counts[subject] = counts.get(subject, 0) + 1
+#         subject = q[
+#             "subject"
+#         ]
 #
-#     text = "📚 Qaysi fandan test ishlaysiz?\n\n"
+#         counts[
+#             subject
+#         ] = counts.get(
+#             subject,
+#             0
+#         ) + 1
+#
+#     text = (
+#         "📚 Qaysi fandan test ishlaysiz?\n\n"
+#     )
 #
 #     kb = ReplyKeyboardBuilder()
 #
 #     total = 0
 #
 #     for subject, count in counts.items():
+#
 #         total += count
 #
-#         text += f"📘 {subject} — {count} ta savol\n"
-#
-#         kb.row(
-#             KeyboardButton(
-#                 text=f"📘 {subject}"
-#             )
+#         text += (
+#             f"📘 {subject}"
+#             f" — {count} ta savol\n"
 #         )
 #
-#     text += f"\n🌍 Barcha fanlar — {total} ta savol"
+#         kb.row(
 #
-#     kb.row(
-#         KeyboardButton(text="🌍 Barcha fanlar")
+#             KeyboardButton(
+#                 text=
+#                 f"📘 {subject}"
+#             )
+#
+#         )
+#
+#     text += (
+#         f"\n🌍 Barcha fanlar"
+#         f" — {total} ta savol"
 #     )
 #
 #     kb.row(
-#         KeyboardButton(text="🛑 Testni tugatish")
+#
+#         KeyboardButton(
+#             text=
+#             "🌍 Barcha fanlar"
+#         )
+#
+#     )
+#
+#     kb.row(
+#
+#         KeyboardButton(
+#             text=
+#             "🛑 Testni tugatish"
+#         )
+#
 #     )
 #
 #     await message.answer(
 #         text,
-#         reply_markup=kb.as_markup(
+#         reply_markup=
+#         kb.as_markup(
 #             resize_keyboard=True
 #         )
 #     )
@@ -483,24 +1479,17 @@
 #         # GLOBAL REYTING
 #         # =====================================
 #
-#         if str(user_id) not in leaderboard_data:
-#             leaderboard_data[str(user_id)] = {
-#
-#                 "name": data["full_name"],
-#                 "correct": 0,
-#                 "total": 0,
-#             }
-#
-#         leaderboard_data[str(user_id)]["correct"] += data["correct"]
-#
-#         leaderboard_data[str(user_id)]["total"] += total
-#
-#         save_leaderboard()
+#         save_result(
+#             user_id,
+#             data["full_name"],
+#             data["correct"],
+#             total
+#         )
 #
 #         await bot.send_message(
 #             data["chat_id"],
 #             result_text,
-#             reply_markup=main_menu()
+#             reply_markup=main_menu(user_id)
 #         )
 #
 #         del users_test[user_id]
@@ -646,89 +1635,122 @@
 # # ==================================================
 # # RESULTS
 # # ==================================================
+# @dp.message(
+#     F.text == "📊 Natijalar"
+# )
+# async def results(
+#         message: Message
+# ):
 #
-# @dp.message(F.text == "📊 Natijalar")
-# async def results(message: Message):
-#     user_id = message.from_user.id
+#     uid = message.from_user.id
 #
-#     if user_id not in user_results:
+#     if (
+#             uid != SUPER_ADMIN
+#             and not is_admin_db(uid)
+#             and not is_user(uid)
+#     ):
+#
 #         await message.answer(
-#             "❌ Siz hali test ishlamagansiz"
+# """
+# ⛔ Sizda ruxsat yo‘q
+# """
 #         )
+#
+#         return
+#
+#     if uid not in user_results:
+#
+#         await message.answer(
+#             "❌ Natija yo‘q"
+#         )
+#
 #         return
 #
 #     await message.answer(
-#         user_results[user_id]
+#         user_results[uid]
 #     )
 #
 #
 # # ==================================================
 # # GLOBAL REYTING
 # # ==================================================
+# @dp.message(
+#     F.text == "🏆 Reyting"
+# )
+# async def leaderboard(
+#         message: Message
+# ):
 #
-# @dp.message(F.text == "🏆 Reyting")
-# async def leaderboard(message: Message):
-#     # reyting bo'sh
-#     if not leaderboard_data:
+#     uid = message.from_user.id
+#
+#     if (
+#             uid != SUPER_ADMIN
+#             and not is_admin_db(uid)
+#             and not is_user(uid)
+#     ):
+#
 #         await message.answer(
-#             "❌ Reyting hali bo'sh"
+# """
+# ⛔ Reytingni ko‘rishga ruxsat yo‘q
+# """
 #         )
+#
 #         return
 #
-#     board = []
+#     board = get_leaderboard()
 #
-#     # =====================================
-#     # DATA
-#     # =====================================
+#     if len(board) == 0:
 #
-#     for user_id, data in leaderboard_data.items():
-#         correct = data["correct"]
-#         total = data["total"]
+#         await message.answer(
+#             "❌ Reyting bo‘sh"
+#         )
 #
-#         percent = round(
-#             (correct / total) * 100,
-#             1
-#         ) if total > 0 else 0
-#
-#         board.append({
-#             "name": data["name"],
-#             "correct": correct,
-#             "total": total,
-#             "percent": percent
-#         })
-#
-#     # =====================================
-#     # SORT
-#     # =====================================
-#
-#     board.sort(
-#         key=lambda x: (
-#             x["correct"],
-#             x["percent"]
-#         ),
-#         reverse=True
-#     )
-#
-#     # =====================================
-#     # TEXT
-#     # =====================================
+#         return
 #
 #     text = "🏆 GLOBAL REYTING\n\n"
 #
-#     for i, user in enumerate(board[:20], start=1):
+#     for i, row in enumerate(
+#             board,
+#             start=1
+#     ):
+#
+#         name = row[0]
+#
+#         correct = row[1]
+#
+#         total = row[2]
+#
+#         percent = round(
+#             (
+#                 correct /
+#                 total
+#             ) * 100,
+#             1
+#         ) if total else 0
+#
+#         mark = ""
+#
+#         # O‘ZINI BELGILASH
+#
+#         if uid == SUPER_ADMIN:
+#
+#             if name == message.from_user.full_name:
+#                 mark = " ⭐"
+#
+#         else:
+#
+#             if name == message.from_user.full_name:
+#                 mark = " ⭐"
+#
 #         text += (
-#             f"{i}. 👤 {user['name']}\n"
-#             f"✅ {user['correct']}/{user['total']} "
-#             f"({user['percent']}%)\n\n"
+#             f"{i}. 👤 {name}{mark}\n"
+#             f"✅ {correct}/{total}\n"
+#             f"🎯 {percent}%\n\n"
 #         )
 #
-#     # =====================================
-#     # SEND
-#     # =====================================
-#
-#     await message.answer(text)
-#
-#
+#     await message.answer(
+#         text
+#     )
 # # ==================================================
 # # FANLAR
 # # ==================================================
@@ -773,7 +1795,7 @@
 #     if user_id not in users_test:
 #         await message.answer(
 #             "❌ Siz hali test boshlamagansiz",
-#             reply_markup=main_menu()
+#             reply_markup=main_menu(message.from_user.id)
 #         )
 #         return
 #
@@ -789,7 +1811,7 @@
 #     if total == 0:
 #         await message.answer(
 #             "❌ Siz hali savol ishlamagansiz",
-#             reply_markup=main_menu()
+#             reply_markup=main_menu(message.from_user.id)
 #         )
 #         return
 #
@@ -850,22 +1872,16 @@
 #     # GLOBAL REYTING
 #     # =====================================
 #
-#     if str(user_id) not in leaderboard_data:
-#         leaderboard_data[str(user_id)] = {
-#             "name": message.from_user.full_name,
-#             "correct": 0,
-#             "total": 0,
-#         }
-#
-#     leaderboard_data[str(user_id)]["correct"] += data["correct"]
-#
-#     leaderboard_data[str(user_id)]["total"] += total
-#
-#     save_leaderboard()
+#     save_result(
+#         user_id,
+#         message.from_user.full_name,
+#         data["correct"],
+#         total
+#     )
 #
 #     await message.answer(
 #         result_text,
-#         reply_markup=main_menu()
+#         reply_markup=main_menu(message.from_user.id)
 #     )
 #
 #     # testni yopish
@@ -906,3 +1922,21 @@
 #     except KeyboardInterrupt:
 #         print("Dastur yopildi")
 #
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
